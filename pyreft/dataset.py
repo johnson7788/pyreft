@@ -105,7 +105,7 @@ def get_intervention_locations(**kwargs):
             left_intervention_locations += [pad_position for _ in range(right_len-left_len)]
         intervention_locations = [left_intervention_locations]*(num_interventions//2) + \
             [right_intervention_locations]*(num_interventions//2)
-    
+    # eg: [[0], [0], [44], [44]] 表示token的位置
     return intervention_locations
 
 
@@ -157,7 +157,7 @@ class ReftDataset(Dataset):
         # tokenize and intervene
         self.result = []
         for i, data_item in enumerate(tqdm(self.task_dataset)):
-            tokenized, last_position = self.tokenize(data_item)
+            tokenized, last_position = self.tokenize(data_item) #last_position是输入的最后1个位置的索引,tokenized包括input_ids,labels
             tokenized = self.compute_intervention_and_subspaces(i, data_item, tokenized, last_position, **kwargs)
             self.result.append(tokenized)
 
@@ -216,7 +216,7 @@ class ReftDataset(Dataset):
             
         # add a single padding token BEFORE input_ids and fix everything
         if self.pad_mode == "first":
-            for field in self.fields_to_pad:
+            for field in self.fields_to_pad: #self.fields_to_pad：['input_ids', 'labels']
                 if field not in result:
                     continue
                 if field == "labels":

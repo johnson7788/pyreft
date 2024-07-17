@@ -15,7 +15,7 @@ class LowRankRotateLayer(torch.nn.Module):
 
     def __init__(self, n, m, init_orth=True):
         super().__init__()
-        # n > m
+        # n > m, n是隐藏层hidden_size, m是rank
         self.weight = torch.nn.Parameter(torch.empty(n, m), requires_grad=True)
         if init_orth:
             torch.nn.init.orthogonal_(self.weight)
@@ -45,10 +45,10 @@ class LoreftIntervention(
     def forward(
         self, base, source=None, subspaces=None
     ):
-        rotated_base = self.rotate_layer(base)
+        rotated_base = self.rotate_layer(base) #torch.Size([4, 1, 4096]):(batch_size, num_token, hidden_size), 某个位置的token向量, 输出rotated_base[4,1,4], 最后1个4是rank的大小
         output = base + torch.matmul(
             (self.act_fn(self.learned_source(base)) - rotated_base), self.rotate_layer.weight.T
-        )
+        ) #output shape: [4,1,4096]
         return self.dropout(output.to(base.dtype))
 
     def state_dict(self, *args, **kwargs):

@@ -83,7 +83,7 @@ def train():
         temp_config = transformers.AutoConfig.from_pretrained(model_args.model_name_or_path)
         layers = [l for l in range(temp_config.num_hidden_layers)]
     if "+" in training_args.position and not training_args.share_weights:
-        layers += layers
+        layers += layers #这里有+号表示在不同层的不同位置进行修改，所以需要重复添加
 
     # get tokenizer
     tokenizer = transformers.AutoTokenizer.from_pretrained(
