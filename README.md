@@ -1,36 +1,85 @@
 <h1 align="center"> <p>pyreft<sub> by <a href="https://github.com/stanfordnlp/pyvene">pyvene</a></sub></p></h1>
 <h3 align="center">
     <p>State-of-the-art Representation Fine-Tuning (ReFT) methods</p>
+    <a href="https://arxiv.org/abs/2404.03592"><strong>Read our paper »</strong></a></a>
 </h3>
-
-# A _Powerful_, _Efficient_ and _Interpretable_ fine-tuning method.
-Want to try a fine-tuning method that uses a fraction of the parameter count of SoTA PEFTs, while achieving potentially better performance? Introducing **`pyreft`**, a **representation fine-tuning (ReFT)** library that supports adapting internal language model representations via trainable interventions. With fewer fine-tuning parameters and more robust performance, **`pyreft`** can boost fine-tuning efficiency, decrease fine-tuning cost, while opening the doors to study the interpretability of adapting parameters.
 
 **`pyreft`** supports
 
-- Finetuning any pretrained LMs on HuggingFace with ReFT
+- Training ReFT with any pretrained LMs on HuggingFace
 - Setting ReFT hyperparameters via configs
-- Sharing the fine-tuned results easily to HuggingFace
-- Support quantized model
-- 🔥 [DPO+ReFT](https://github.com/stanfordnlp/pyreft/tree/main/examples/dpo)
-- 🔥 [LoRA+ReFT](https://github.com/stanfordnlp/pyreft/tree/main/examples/peft)
+- Sharing the ReFT results easily to HuggingFace
+
+<a href="https://pypi.org/project/pyreft/"><img src="https://img.shields.io/pepy/dt/pyreft?color=green"></img></a>
+<a href="https://pypi.org/project/pyreft/"><img src="https://img.shields.io/pypi/v/pyreft?color=red"></img></a> 
+<a href="https://pypi.org/project/pyreft/"><img src="https://img.shields.io/pypi/l/pyreft?color=blue"></img></a>
 
 > [!TIP]
-> **Getting Started:** [<img align="center" src="https://colab.research.google.com/assets/colab-badge.svg" />](https://colab.research.google.com/github/stanfordnlp/pyreft/blob/main/main_demo.ipynb) [**ReFT with TinyLlama**]  
+> **Getting Started:** [<img align="center" src="https://colab.research.google.com/assets/colab-badge.svg" />](https://colab.research.google.com/github/stanfordnlp/pyreft/blob/main/main_demo.ipynb) [**ReFT with TinyLlama**]     
+> **FSDP Integration:** See our instruction-tuning example [here](https://github.com/stanfordnlp/pyreft/tree/main/examples/alpaca)
+
+Install **`pyreft`** from pip:
+```bash
+pip install pyreft
+```
+
+Alternatively, install our latest **`pyreft`** from pip+git:
+```bash
+pip install git+https://github.com/stanfordnlp/pyreft.git
+```
+
+## What makes ReFT different from LoRA or PEFTs?
+
+We've got a lot of questions regarding why ReFT is any different from LoRA or Adaptor? What does "representation" mean in *Re*FT? We try to answer these questions through concrete case studies.
+
+First of all, ReFT shares a lot of common grounds with existing PEFTs:
+- LoRA on transformer's `o_proj` weights can be seen as an intervention applied on the attention **input** stream with *mergeable* weights. Formally, if the original input to `o_proj` is `x` and the original output is `h`, the new output `h' = Wx + WaWbx = (W+WaWb)x`. This transformation follows our intervention definition very closely.
+- Adaptor on each transformer layer output can also be seen as an intervention applied on residual stream with *un-mergeable* weights. With a similar notation, the new output `h' = x + f(x)` where `f(.)` is parameterized by the Adaptor.
+
+However, these PEFTs usually operate on weights. As a result, they apply the intervention across **all timesteps**. ReFT is different: (1) **ReFT selects timesteps to intervene on**; and (2) **ReFT targets representations instead of weights**. To help you understand these differences, let's consider these cases:
+
+> ##### Case I:
+> - Learning LoRA weights on `o_proj`.
+> - Learning ReFT interventons that apply to `o_proj` across all timesteps.
+> - Learning ReFT interventons that apply to `o_proj` only on the first token.
+> 
+> **Conclusion**: They have the exact same trainable parameter count. LoRA applies to the input of `o_proj`, but ReFT applies to the output of `o_proj`.
+
+> ##### Case II:
+> - Learning LoRA weights on `mlp_down`.
+> - Learning ReFT interventons that apply to the residual stream across all timesteps.
+> 
+> **Conclusion**: LoRA has slightly more trainable parameters; and LoRA intervenes the pre-residual representation.
+
+> ##### Case III:
+> - Learning Adaptor that apply to the residual stream across all timesteps.
+> - Learning ReFT interventons that apply to the residual stream only on the first token.
+> 
+> **Conclusion**: They have the exact same trainable parameter count.
+
+> ##### Case IV:
+> - Learning two distinct ReFT interventions, one applies to the residual stream of the first token and the other to the last token.
+> - Learning Adaptor that apply to the residual stream across all timesteps.
+> 
+> **Conclusion**: ReFT doubles the parameter count. Adaptor treats all tokens the same, but ReFT does not.
+
+> ##### Case V:
+> - Learning a single ReFT intervention that applies to the concatenated representation of the last two tokens.
+> - Splitting a rank 8 LoRA adaptor into two rank 4 ReFT interventions, and applying them to two different groups of tokens.
+> - Learning a single ReFT intervention that applies to the last token conditioned on some similarity metric between two other representations.
+> - Learning a single LoReFT intervention that applies to a linear subspace of the last token representation. ([Why](https://proceedings.mlr.press/v236/geiger24a/geiger24a.pdf) a linear subspace?)
+> - LoRA? Adaptor?
+> 
+> **Conclusion**: Now, we are entering zones that can only be easily achieved if you start to doing ReFT. 
+
+Hopefully, these case studies could help you to understand what ReFT is aiming towards!
+
+
+## A step-by-step guide: training an 😀 Emoji-Chatbot ([live demo](https://huggingface.co/spaces/pyvene/reft_emoji_chat)) with ReFT in 30 seconds!
 
 <kbd>
 <img src="https://github.com/stanfordnlp/pyreft/assets/15223704/580d6cfd-4c3c-49a7-bc9f-1f9cc9a5aee7" width="400"/>
 </kbd>
-
-## A step-by-step guide: training an 😀 Emoji-Chatbot ([live demo](https://huggingface.co/spaces/pyvene/reft_emoji_chat)) with ReFT in 30 seconds!
-
-**🔥 Train TinyLlama Emoji-Chatbot**: [<img align="center" src="https://colab.research.google.com/assets/colab-badge.svg" />](https://colab.research.google.com/github/stanfordnlp/pyreft/blob/main/main_demo.ipynb)
-
-First, install **`pyreft`** from pip+git:
-
-```bash
-pip install git+https://github.com/stanfordnlp/pyreft.git
-```
 
 ### Step 1: loading the raw LM you want to train with ReFT.
 We first load in any model we want to gain controls over. In this case, we load an instruct-tuned **`Llama-2-chat 7B`** from HuggingFace:
