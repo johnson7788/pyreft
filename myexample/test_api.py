@@ -98,7 +98,7 @@ class PYreftTestCase(unittest.TestCase):
         headers = {'content-type': 'application/json'}
         # 提交form格式数据
         # question = "中国香氛市场过去一年消费者讨论香水的的变化趋势如何？"
-        data = {"instruction": "who are you?", "specify_model_dir": "mind"}
+        data = {"instruction": "who are you?", "specify_model_dir": "main"}
         r = requests.post(url, data=json.dumps(data), headers=headers)
         assert r.status_code == 200, f"返回的status code不是200，请检查"
         res = r.json()
